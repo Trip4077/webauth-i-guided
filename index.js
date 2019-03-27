@@ -1,6 +1,7 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
 
 const db = require('./database/dbConfig.js');
 const Users = require('./users/users-model.js');
@@ -17,9 +18,22 @@ server.get('/', (req, res) => {
 
 server.post('/api/register', (req, res) => {
   let user = req.body;
+  console.log(user)
+
+  //1. has the password
+
+  const hash = bcrypt.hashSync(user.password);
+
+  //2. replace password on user
+  user.password = hash;
+
+  console.log(user);
 
   Users.add(user)
     .then(saved => {
+      //dont return password
+      delete saved.password;
+
       res.status(201).json(saved);
     })
     .catch(error => {
