@@ -22,7 +22,7 @@ server.post('/api/register', (req, res) => {
 
   //1. has the password
 
-  const hash = bcrypt.hashSync(user.password);
+  const hash = bcrypt.hashSync(user.password, 25);
 
   //2. replace password on user
   user.password = hash;
@@ -58,13 +58,34 @@ server.post('/api/login', (req, res) => {
     });
 });
 
-server.get('/api/users', (req, res) => {
+server.get('/api/users', restrict, (req, res) => {
   Users.find()
     .then(users => {
       res.json(users);
     })
     .catch(err => res.send(err));
 });
+
+function restrict(req, res, next) {
+  const { username, password } = req.headers;
+
+  if(username && password) {
+    Users.findBy({ username })
+    .first()
+    .then(user => {
+       if(user && bcrypt.compareSync(password, user.password)) {
+         next();
+       } else {
+         res.status(401).json({ message: 'Invalid Login' })
+       }
+    }).catch(err => {
+      res.status(500).json({ err })
+    })
+  } else {
+    res.status(400).json({ message: "Missing Credentals" })
+  }
+
+}
 
 const port = process.env.PORT || 5000;
 server.listen(port, () => console.log(`\n** Running on port ${port} **\n`));
